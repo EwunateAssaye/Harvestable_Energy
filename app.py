@@ -57,6 +57,8 @@ if submit:
         "Relative Humidity": humidity,
         "Pressure": pressure,
         "Wind Speed": wind_speed,
+        "Wind Direction": wind_direction,
+        "Snow Depth": snow_depth,
         "Precipitable Water": precipitable_water,
         "Solar Zenith Angle": solar_zenith,
         "hour_sin": hour_sin,
@@ -75,3 +77,4 @@ if submit:
     ghi_pred = max(0, ghi_pred)
 
     st.success(f"🌞 Predicted GHI: **{ghi_pred:.2f} W/m²**")
+
