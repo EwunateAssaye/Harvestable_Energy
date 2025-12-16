@@ -14,10 +14,13 @@ features = joblib.load("model_features.pkl")
 # ------------------------------------
 # Streamlit UI
 # ------------------------------------
-st.set_page_config(page_title="GHI Prediction", layout="centered")
+st.set_page_config(page_title="Solar Harvestable Energy Prediction", layout="centered")
 
-st.title("🌞 Global Horizontal Irradiance (GHI) Predictor")
-st.write("Predict hourly GHI (W/m²) using meteorological and time inputs.")
+st.title("🌞 Potential Harvestable Solar Energy Predictor")
+st.write(
+    "This tool predicts **potential harvestable solar energy (Wh/m² per hour)** "
+    "using meteorological and temporal inputs."
+)
 
 
 # ------------------------------------
@@ -38,20 +41,25 @@ with st.form("ghi_input_form"):
     precipitable_water = st.number_input("Precipitable Water (cm)", 0.0, 10.0, 1.5)
     solar_zenith = st.number_input("Solar Zenith Angle (degrees)", 0.0, 180.0, 45.0)
 
-    submit = st.form_submit_button("Predict GHI")
+    submit = st.form_submit_button("Estimate Harvestable Energy")
 
 
 # ------------------------------------
-# Feature engineering (MATCH TRAINING)
+# Prediction logic
 # ------------------------------------
 if submit:
+    # Cyclical time encoding
     hour_sin = np.sin(2 * np.pi * hour / 24)
     hour_cos = np.cos(2 * np.pi * hour / 24)
 
     doy_sin = np.sin(2 * np.pi * day_of_year / 365)
     doy_cos = np.cos(2 * np.pi * day_of_year / 365)
 
-    # Create input dataframe
+    # Defaults for training features
+    wind_direction = 180.0   # degrees
+    snow_depth = 0.0         # meters
+
+    # Assemble input
     input_data = {
         "Temperature": temperature,
         "Relative Humidity": humidity,
@@ -69,12 +77,36 @@ if submit:
 
     X_input = pd.DataFrame([input_data])
 
-    # Ensure correct column order
+    # Feature consistency check
+    missing_features = set(features) - set(X_input.columns)
+    if missing_features:
+        st.error(f"Missing required features: {missing_features}")
+        st.stop()
+
     X_input = X_input[features]
 
-    # Predict
+    # ------------------------------------
+    # Predict GHI
+    # ------------------------------------
     ghi_pred = model.predict(X_input)[0]
     ghi_pred = max(0, ghi_pred)
 
-    st.success(f"🌞 Predicted GHI: **{ghi_pred:.2f} W/m²**")
+    # ------------------------------------
+    # Convert to harvestable energy
+    # ------------------------------------
+    efficiency = 0.16   # 16% system efficiency
+    harvestable_energy = ghi_pred * 1.0 * efficiency  # Wh/m² per hour
+
+    # ------------------------------------
+    # Display results
+    # ------------------------------------
+    st.success(
+        f"🔋 **Potential Harvestable Energy:** "
+        f"**{harvestable_energy:.2f} Wh/m² (per hour)**"
+    )
+
+    st.caption(
+        "Assumptions: 1-hour duration, 16% overall PV system efficiency."
+    )
+
 
